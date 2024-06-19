@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemporalStasis.Chronofoil", "TemporalStasis.Chronofoil\TemporalStasis.Chronofoil.csproj", "{CC5DDC89-C15F-47A2-B0D7-191AA443114B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libs", "libs", "{C469E9E6-A336-4083-94A1-3CC1FE822C1C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronofoil.CaptureFile", "Chronofoil.CaptureFile\src\Chronofoil.CaptureFile.csproj", "{0C994EAD-775C-4714-BDD5-78A0D2462B15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemporalStasis", "TemporalStasis\TemporalStasis\TemporalStasis.csproj", "{F66F5133-E5D1-4641-82A0-C48F58E144B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CC5DDC89-C15F-47A2-B0D7-191AA443114B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC5DDC89-C15F-47A2-B0D7-191AA443114B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC5DDC89-C15F-47A2-B0D7-191AA443114B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC5DDC89-C15F-47A2-B0D7-191AA443114B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C994EAD-775C-4714-BDD5-78A0D2462B15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C994EAD-775C-4714-BDD5-78A0D2462B15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C994EAD-775C-4714-BDD5-78A0D2462B15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C994EAD-775C-4714-BDD5-78A0D2462B15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F66F5133-E5D1-4641-82A0-C48F58E144B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F66F5133-E5D1-4641-82A0-C48F58E144B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F66F5133-E5D1-4641-82A0-C48F58E144B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F66F5133-E5D1-4641-82A0-C48F58E144B1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0C994EAD-775C-4714-BDD5-78A0D2462B15} = {C469E9E6-A336-4083-94A1-3CC1FE822C1C}
+		{F66F5133-E5D1-4641-82A0-C48F58E144B1} = {C469E9E6-A336-4083-94A1-3CC1FE822C1C}
+	EndGlobalSection
+EndGlobal

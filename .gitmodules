@@ -1,0 +1,6 @@
+[submodule "Chronofoil.CaptureFile"]
+	path = Chronofoil.CaptureFile
+	url = https://github.com/ProjectChronofoil/Chronofoil.CaptureFile.git
+[submodule "TemporalStasis"]
+	path = TemporalStasis
+	url = https://github.com/NotNite/TemporalStasis.git
