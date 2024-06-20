@@ -90,37 +90,14 @@ async Task Handle(CommandArguments arguments) {
     });
     writer.WriteCaptureStart(captureId, DateTime.UtcNow);
 
-    void WritePacket(ConnectionType protocol, Direction direction, RawInterceptedPacket raw) {
-        // Fake a packet header for the capture file
-        // This is ***NOT TO SPEC*** but I'm too lazy to make changes to TemporalStasis to expose it
-        var header = new PacketHeader {
-            Timestamp = (ulong) DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Size = (uint) (Marshal.SizeOf<PacketHeader>() + raw.SegmentHeader.Size + raw.Data.Length),
-            ConnectionType = protocol,
-            Count = 1
-        };
-
-        using var ms = new MemoryStream();
-        using var bw = new BinaryWriter(ms);
-        ms.WriteStruct(header);
-        ms.WriteStruct(raw.SegmentHeader);
-        ms.Write(raw.Data);
-
-        writer.AppendCaptureFrame((Protocol) protocol, direction, ms.ToArray());
+    void WritePacket(ConnectionType protocol, Direction direction, byte[] data) {
+        writer.AppendCaptureFrame((Protocol) protocol, direction, data);
     }
 
-    lobbyProxy.OnRawClientboundPacket += (
-        int _, ref RawInterceptedPacket packet, ref bool _, ConnectionType type
-    ) => WritePacket(type, Direction.Rx, packet);
-    lobbyProxy.OnRawServerboundPacket += (
-        int _, ref RawInterceptedPacket packet, ref bool _, ConnectionType type
-    ) => WritePacket(type, Direction.Tx, packet);
-    zoneProxy.OnRawClientboundPacket += (
-        int _, ref RawInterceptedPacket packet, ref bool _, ConnectionType type
-    ) => WritePacket(type, Direction.Rx, packet);
-    zoneProxy.OnRawServerboundPacket += (
-        int _, ref RawInterceptedPacket packet, ref bool _, ConnectionType type
-    ) => WritePacket(type, Direction.Tx, packet);
+    lobbyProxy.OnRawClientboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Rx, frame);
+    lobbyProxy.OnRawServerboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Tx, frame);
+    zoneProxy.OnRawClientboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Rx, frame);
+    zoneProxy.OnRawServerboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Tx, frame);
 
     await Task.WhenAll(lobbyProxy.StartAsync(), zoneProxy.StartAsync(), Task.Run(() => {
         Console.WriteLine("Listening for connections... press any key to stop");
