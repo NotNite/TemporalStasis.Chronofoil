@@ -99,13 +99,28 @@ async Task Handle(CommandArguments arguments) {
     zoneProxy.OnRawClientboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Rx, frame);
     zoneProxy.OnRawServerboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Tx, frame);
 
-    await Task.WhenAll(lobbyProxy.StartAsync(), zoneProxy.StartAsync(), Task.Run(() => {
-        Console.WriteLine("Listening for connections... press any key to stop");
-        Console.ReadKey();
-        Console.WriteLine("Stopping...");
-        writer.WriteCaptureEnd(DateTime.UtcNow);
-        Environment.Exit(0);
-    }));
+    await Task.WhenAll(
+        Task.Run(async () => {
+            try {
+                await lobbyProxy.StartAsync();
+            } catch (Exception e) {
+                Console.WriteLine(e);
+            }
+        }),
+        Task.Run(async () => {
+            try {
+                await zoneProxy.StartAsync();
+            } catch (Exception e) {
+                Console.WriteLine(e);
+            }
+        }),
+        Task.Run(() => {
+            Console.WriteLine("Listening for connections... press any key to stop");
+            Console.ReadKey();
+            Console.WriteLine("Stopping...");
+            writer.WriteCaptureEnd(DateTime.UtcNow);
+            Environment.Exit(0);
+        }));
 }
 
 public class CommandArguments {
