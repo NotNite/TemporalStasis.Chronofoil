@@ -2,13 +2,12 @@
 using System.CommandLine.Binding;
 using System.Net;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Chronofoil.CaptureFile;
 using Chronofoil.CaptureFile.Generated;
 using TemporalStasis;
 using TemporalStasis.Compression;
-using TemporalStasis.Intercept;
-using TemporalStasis.Proxy;
 using TemporalStasis.Structs;
 
 var captureId = Guid.NewGuid();
@@ -16,15 +15,15 @@ var captureId = Guid.NewGuid();
 var rootCommand = new RootCommand("TemporalStasis.Chronofoil");
 var origHostOption = new Option<string>("--host", () => "neolobby02.ffxiv.com",
     "Lobby server to forward (usually neolobbyXX.ffxiv.com for official servers)");
-var origPortOption = new Option<uint>("--port", () => 54994,
+var origPortOption = new Option<int>("--port", () => 54994,
     "Port of the lobby server to forward (usually 54994 for official servers)");
 var lobbyProxyHostOption = new Option<string>("--lobby-proxy-host", () => "127.0.0.1",
     "Host to listen for lobby connections on");
-var lobbyProxyPortOption = new Option<uint>("--lobby-proxy-port", () => 44994,
+var lobbyProxyPortOption = new Option<int>("--lobby-proxy-port", () => 44994,
     "Port to listen for lobby connections on");
 var zoneProxyHostOption = new Option<string>("--zone-proxy-host", () => "127.0.0.1",
     "Host to listen for zone connections on");
-var zoneProxyPortOption = new Option<uint>("--zone-proxy-port", () => 44992,
+var zoneProxyPortOption = new Option<int>("--zone-proxy-port", () => 44992,
     "Port to listen for zone connections on");
 var publicZoneHostOption = new Option<string?>("--public-zone-host",
     "Host to send to the client for zone connections");
@@ -76,11 +75,10 @@ async Task Handle(CommandArguments arguments) {
     var lobbyProxyHost = await Lookup(arguments.LobbyProxyHost);
     var zoneProxyHost = await Lookup(arguments.ZoneProxyHost);
 
-    var lobbyProxy = new LobbyProxy(origHost, arguments.OrigPort, lobbyProxyHost, arguments.LobbyProxyPort);
+    var lobbyProxy = new LobbyProxy(new IPEndPoint(origHost, arguments.OrigPort), new IPEndPoint(lobbyProxyHost, arguments.LobbyProxyPort));
     var oodle = new OodleLibraryFactory(arguments.OodlePath);
-    var zoneProxy = new ZoneProxy(oodle, zoneProxyHost, arguments.ZoneProxyPort,
-        arguments.PublicZoneHost != null ? await Lookup(arguments.PublicZoneHost) : null,
-        arguments.PublicZonePort != null ? (uint) arguments.PublicZonePort : null);
+    var zoneProxy = new ZoneProxy(oodle, new IPEndPoint(zoneProxyHost, arguments.ZoneProxyPort),
+        arguments.PublicZoneHost != null && arguments.PublicZonePort != null ? new IPEndPoint(await Lookup(arguments.PublicZoneHost), (int) arguments.PublicZonePort) : null);
     lobbyProxy.ZoneProxy = zoneProxy;
 
     var writer = new CaptureWriter(arguments.Output);
@@ -90,14 +88,25 @@ async Task Handle(CommandArguments arguments) {
     });
     writer.WriteCaptureStart(captureId, DateTime.UtcNow);
 
-    void WritePacket(ConnectionType protocol, Direction direction, byte[] data) {
-        writer.AppendCaptureFrame((Protocol) protocol, direction, data);
+    void WritePacket(ConnectionType protocol, DestinationType direction, PacketFrame frame) {
+        var data = new byte[Unsafe.SizeOf<FrameHeader>() + frame.Data.Length];
+        MemoryMarshal.Write<FrameHeader>(data, frame.FrameHeader);
+        System.Buffer.BlockCopy(frame.Data.ToArray(), 0, data, Unsafe.SizeOf<FrameHeader>(), frame.Data.Length);
+
+        writer.AppendCaptureFrame((Protocol) protocol, direction is DestinationType.Clientbound ? Direction.Rx : Direction.Tx, data);
     }
 
-    lobbyProxy.OnRawClientboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Rx, frame);
-    lobbyProxy.OnRawServerboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Tx, frame);
-    zoneProxy.OnRawClientboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Rx, frame);
-    zoneProxy.OnRawServerboundFrame += (frame, protocol) => WritePacket(protocol, Direction.Tx, frame);
+    lobbyProxy.OnClientConnected += (connection) => {
+        connection.OnPacketFrameReceived += (ref PacketFrame packet, DestinationType type, ref bool dropped) => {
+            WritePacket(connection.Type ?? ConnectionType.Lobby, type, packet);
+        };
+    };
+
+    zoneProxy.OnClientConnected += (connection) => {
+        connection.OnPacketFrameReceived += (ref PacketFrame packet, DestinationType type, ref bool dropped) => {
+            WritePacket(connection.Type ?? ConnectionType.Zone, type, packet);
+        };
+    };
 
     await Task.WhenAll(
         Task.Run(async () => {
@@ -125,11 +134,11 @@ async Task Handle(CommandArguments arguments) {
 
 public class CommandArguments {
     public required string OrigHost;
-    public required uint OrigPort;
+    public required int OrigPort;
     public required string LobbyProxyHost;
-    public required uint LobbyProxyPort;
+    public required int LobbyProxyPort;
     public required string ZoneProxyHost;
-    public required uint ZoneProxyPort;
+    public required int ZoneProxyPort;
     public string? PublicZoneHost;
     public int? PublicZonePort;
     public required string OodlePath;
@@ -138,11 +147,11 @@ public class CommandArguments {
 
 public class CommandArgumentsBinder : BinderBase<CommandArguments> {
     public required Option<string> OrigHost;
-    public required Option<uint> OrigPort;
+    public required Option<int> OrigPort;
     public required Option<string> LobbyProxyHost;
-    public required Option<uint> LobbyProxyPort;
+    public required Option<int> LobbyProxyPort;
     public required Option<string> ZoneProxyHost;
-    public required Option<uint> ZoneProxyPort;
+    public required Option<int> ZoneProxyPort;
     public required Option<string?> PublicZoneHost;
     public required Option<int?> PublicZonePort;
     public required Option<string> OodlePath;
