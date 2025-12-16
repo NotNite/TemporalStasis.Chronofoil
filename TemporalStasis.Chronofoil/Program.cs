@@ -31,6 +31,9 @@ var publicZonePortOption = new Option<int?>("--public-zone-port",
     "Port to send to the client for zone connections");
 var oodlePathOption = new Option<string>("--oodle-path", () => "oodle-network-shared.dll",
     "Path to the Oodle library to use for compression");
+var encryptionKeyVersionOption = new Option<uint>("--encryption-key-version",
+    () => new LobbyProxyConfig().EncryptionKeyVersion,
+    "Lobby encryption key version");
 var outputArgument = new Argument<string>("output",
     () => "./captures/" + captureId + ".cfcap",
     "Output file to write captured packets to");
@@ -46,6 +49,7 @@ rootCommand.AddOption(zoneProxyPortOption);
 rootCommand.AddOption(publicZoneHostOption);
 rootCommand.AddOption(publicZonePortOption);
 rootCommand.AddOption(oodlePathOption);
+rootCommand.AddOption(encryptionKeyVersionOption);
 rootCommand.AddArgument(outputArgument);
 
 rootCommand.SetHandler(
@@ -60,6 +64,7 @@ rootCommand.SetHandler(
         PublicZoneHost = publicZoneHostOption,
         PublicZonePort = publicZonePortOption,
         OodlePath = oodlePathOption,
+        EncryptionKeyVersion = encryptionKeyVersionOption,
         Output = outputArgument
     }
 );
@@ -76,6 +81,7 @@ async Task Handle(CommandArguments arguments) {
     var zoneProxyHost = await Lookup(arguments.ZoneProxyHost);
 
     var lobbyProxy = new LobbyProxy(new IPEndPoint(origHost, arguments.OrigPort), new IPEndPoint(lobbyProxyHost, arguments.LobbyProxyPort));
+    lobbyProxy.Config.EncryptionKeyVersion = arguments.EncryptionKeyVersion;
     var oodle = new OodleLibraryFactory(arguments.OodlePath);
     var zoneProxy = new ZoneProxy(oodle, new IPEndPoint(zoneProxyHost, arguments.ZoneProxyPort),
         arguments.PublicZoneHost != null && arguments.PublicZonePort != null ? new IPEndPoint(await Lookup(arguments.PublicZoneHost), (int) arguments.PublicZonePort) : null);
@@ -142,6 +148,7 @@ public class CommandArguments {
     public string? PublicZoneHost;
     public int? PublicZonePort;
     public required string OodlePath;
+    public required uint EncryptionKeyVersion;
     public required string Output;
 }
 
@@ -155,6 +162,7 @@ public class CommandArgumentsBinder : BinderBase<CommandArguments> {
     public required Option<string?> PublicZoneHost;
     public required Option<int?> PublicZonePort;
     public required Option<string> OodlePath;
+    public required Option<uint> EncryptionKeyVersion;
     public required Argument<string> Output;
 
     protected override CommandArguments GetBoundValue(BindingContext bindingContext) {
@@ -169,6 +177,7 @@ public class CommandArgumentsBinder : BinderBase<CommandArguments> {
             PublicZoneHost = res.GetValueForOption(PublicZoneHost),
             PublicZonePort = res.GetValueForOption(PublicZonePort),
             OodlePath = res.GetValueForOption(OodlePath)!,
+            EncryptionKeyVersion = res.GetValueForOption(EncryptionKeyVersion)!,
             Output = res.GetValueForArgument(Output)
         };
     }
